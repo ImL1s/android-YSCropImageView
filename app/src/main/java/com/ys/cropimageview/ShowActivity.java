@@ -19,6 +19,8 @@ public class ShowActivity extends AppCompatActivity
 
         Bitmap bitmap = (Bitmap) data.getExtras().get("bitmap");
         ImageView iv = (ImageView) findViewById(R.id.iv_shows);
+        iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
         iv.setImageBitmap(bitmap);
     }
+
 }

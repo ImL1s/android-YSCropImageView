@@ -7,10 +7,42 @@
     android:layout_height="match_parent"
     tools:context="com.ys.cropimageview.ShowActivity">
 
-    <ImageView
-        android:id="@+id/iv_shows"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="wrap_content">
+
+        <com.ys.cropimageview.view.CircleImageView
+            android:id="@+id/iv_shows"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:layout_centerInParent="true"
+            android:layout_marginTop="30dp"
+            />
+
+        <ImageView
+            android:layout_width="35dp"
+            android:layout_height="35dp"
+            android:layout_alignRight="@id/iv_shows"
+            android:layout_below="@id/iv_shows"
+            android:layout_marginRight="10dp"
+            android:layout_marginTop="-40dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/icon_camera"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/iv_shows"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="10dp"
+            android:text="Remu"/>
+
+    </RelativeLayout>
+
+    <!--<ImageView-->
+    <!--android:id="@+id/iv_shows"-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="match_parent"/>-->
 
 
 </RelativeLayout>
