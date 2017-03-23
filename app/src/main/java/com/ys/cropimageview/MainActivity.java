@@ -106,7 +106,8 @@ public class MainActivity extends AppCompatActivity implements CropImageView.OnS
     public void onCroppedResult(Bitmap bitmap)
     {
         Intent intent = new Intent(this, ShowActivity.class);
-        intent.putExtra("bitmap", zoomBitmap(bitmap, .5f, .5f));
+        // 注意,如果不縮放圖片大小,會報出TransactionTooLargeException
+        intent.putExtra("bitmap", zoomBitmap(bitmap, .1f, .1f));
         startActivity(intent);
         finish();
     }

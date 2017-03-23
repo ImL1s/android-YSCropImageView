@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
@@ -33,7 +34,7 @@ public class CropImageView extends View
     private int   mCropBackColor = Color.BLACK;
 
     private Rect mBitmapRect = null;
-    private RectF mViewRect;
+    private RectF mViewRectF;
     private RectF  mClipRectF      = new RectF();
     private Paint  mPaint          = new Paint();
     private PointF mSPoint         = new PointF(0f, 0f);
@@ -45,9 +46,11 @@ public class CropImageView extends View
     private Paint                 mWhitePaint   = null;
     private OnStateChangeListener mOnSCListener = null;
     private ViewState             mViewState    = ViewState.normal;
-    private float  mFocusDiffX;
-    private float  mFocusDiffY;
-    private Bitmap mCacheBitmap;
+    private float   mFocusDiffX;
+    private float   mFocusDiffY;
+    private Bitmap  mCacheBitmap;
+    private float   mScale;
+    private boolean mCanSingleMove;
 
 
     enum ViewState
@@ -80,7 +83,7 @@ public class CropImageView extends View
         mContext = context;
         mBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.emt);
         mBitmapRect = new Rect(0, 0, mBitmap.getWidth(), mBitmap.getHeight());
-        mViewRect = new RectF(0, 0, getWidth(), getHeight());
+        mViewRectF = new RectF(0, 0, getWidth(), getHeight());
 
         mWhitePaint = new Paint();
         mWhitePaint.setColor(Color.WHITE);
@@ -88,50 +91,102 @@ public class CropImageView extends View
         mClipPath = new Path();
     }
 
+    private float mBaseDistance = 0;
 
     @Override
     public boolean onTouchEvent(MotionEvent event)
     {
-        if (event.getPointerCount() == 1)
+        switch ((event.getAction() & MotionEvent.ACTION_MASK))
         {
-            Log.d("debug", "雙點觸控: " + event.getPointerCount());
-
-            /* TODO 1.雙點觸控down時紀錄當前兩點距離
-             *  2.Move時計算當前距離與原距離的比例(當前/原本)
-             *  3.按照比例進行縮放處理
-             */
-
-            return true;
-            //            return true;
-        }
-        //        else if (event.getAction() > 0x00ff)
-        //        {
-        //            Log.d("debug", "多點觸控");
-        //            return true;
-        //        }
-        else
-        {
-            switch ((event.getAction() & MotionEvent.ACTION_MASK))
-            {
-                case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_DOWN:
+                if (event.getPointerId(event.getActionIndex()) == 0 &&
+                    mViewRectF.contains(event.getX(), event.getY()))
+                {
                     onDown(event);
-                    return true;
+                }
+                if (mBaseDistance != 0)
+                    mBaseDistance = 0;
+                return true;
 
-                case MotionEvent.ACTION_MOVE:
-                    onMove(event);
-                    return true;
+            case MotionEvent.ACTION_MOVE:
+                if (event.getPointerCount() == 2)
+                {
+                    onDoubleFingerMove(event);
+                    recordFirstFingerLastMovePoint(event);
+                }
+                if (event.getPointerId(event.getActionIndex()) == 0 &&
+                    mViewRectF.contains(event.getX(), event.getY()))
+                {
+                    onSingleFingerMove(event);
+                }
+                return true;
 
-                case MotionEvent.ACTION_UP:
-                    onUp(event);
-                    return true;
+            case MotionEvent.ACTION_UP:
+                onUp(event);
+                return true;
 
-                case MotionEvent.ACTION_CANCEL:
-                    onCancel(event);
-                    return true;
-            }
+            case MotionEvent.ACTION_POINTER_UP:
+                onPointerUp(event);
+                return true;
+
+            case MotionEvent.ACTION_CANCEL:
+                onCancel(event);
+                return true;
         }
+
 
         return false;
+    }
+
+    private void onPointerUp(MotionEvent e)
+    {
+        switch (mViewState)
+        {
+            case focus:
+                if (e.getPointerId(e.getActionIndex()) == 0 &&
+                    mViewRectF.contains(e.getX(), e.getY()))
+                {
+                    mCanSingleMove = false;
+                }
+                break;
+        }
+    }
+
+    /**
+     * 雙指
+     *
+     * @param event
+     */
+    private void onDoubleFingerMove(MotionEvent event)
+    {
+        float x = event.getX(0) - event.getX(1);
+        float y = event.getY(0) - event.getY(1);
+
+        float distance = (float) Math.sqrt(x * x + y * y);
+
+        if (mBaseDistance == 0)
+        {
+            mBaseDistance = distance;
+        }
+        else if (distance - mBaseDistance > 10 || distance - mBaseDistance < -10)
+        {
+            mScale = (distance / mBaseDistance);
+
+            float width = mViewRectF.width() * mScale;
+            float height = mViewRectF.height() * mScale;
+
+            if (width < getWidth() * 0.5f || height < getHeight() * 0.5f ||
+                width > getWidth() * 2f || height > getHeight() * 2f)
+                return;
+
+            mBaseDistance = distance;
+
+            mViewRectF.set(mViewRectF.centerX() - width * 0.5f,
+                    mViewRectF.centerY() - height * 0.5f, mViewRectF.centerX() + width * 0.5f,
+                    mViewRectF.centerY() + height * 0.5f);
+
+            invalidate();
+        }
     }
 
 
@@ -185,7 +240,7 @@ public class CropImageView extends View
 
         mPaint.setColor(mCColor);
 
-        renderOriginalImageWithDiff(canvas);
+        renderOriginalImageWithViewRect(canvas);
 
         buildBitmapCache();
 
@@ -201,7 +256,7 @@ public class CropImageView extends View
 
         canvas.clipPath(mClipPath);
 
-        canvas.drawBitmap(mBitmap, mBitmapRect, mViewRect, null);
+        canvas.drawBitmap(mBitmap, mBitmapRect, mViewRectF, null);
 
         if (mOnSCListener != null)
             mOnSCListener.onCompletedFocusState(this, mClipRectF);
@@ -240,7 +295,7 @@ public class CropImageView extends View
 
         Canvas canvas = new Canvas(mCacheBitmap);
 
-        canvas.drawBitmap(mBitmap, null, mViewRect, null);
+        canvas.drawBitmap(mBitmap, null, mViewRectF, null);
 
         return mCacheBitmap;
     }
@@ -281,39 +336,82 @@ public class CropImageView extends View
     private void renderOriginalImage(Canvas canvas)
     {
         float mul = (float) getWidth() / (float) mBitmapRect.right;
-        mViewRect.set(0, 0, getWidth(), mBitmapRect.bottom * mul);
-        canvas.drawBitmap(mBitmap, mBitmapRect, mViewRect, null);
+        mViewRectF.set(0, 0, getWidth(), mBitmapRect.bottom * mul);
+        canvas.drawBitmap(mBitmap, mBitmapRect, mViewRectF, null);
     }
 
-    private void renderOriginalImageWithDiff(Canvas canvas)
+    private void renderOriginalImageWithViewRect(Canvas canvas)
     {
         float mul = (float) getWidth() / (float) mBitmapRect.right;
 
-        mViewRect.set(mFocusDiffX, mFocusDiffY, mFocusDiffX + getWidth(),
-                mFocusDiffY + mBitmapRect.bottom * mul);
+        //        mViewRectF.set(mFocusDiffX, mFocusDiffY, mFocusDiffX + getWidth(),
+        //                mFocusDiffY + mBitmapRect.bottom * mul);
 
-        canvas.drawBitmap(mBitmap, mBitmapRect, mViewRect, null);
+        canvas.drawBitmap(mBitmap, mBitmapRect, mViewRectF, null);
     }
 
 
     // region method - touch event
     private void onUp(MotionEvent e)
     {
-        mViewState = ViewState.focus;
+        switch (mViewState)
+        {
+            case normal:
+                mViewState = ViewState.focus;
+                break;
+
+            case focus:
+                if (e.getPointerId(e.getActionIndex()) == 0 &&
+                    mViewRectF.contains(e.getX(), e.getY()))
+                {
+                    mCanSingleMove = false;
+                }
+
+                if (mViewRectF.left > mClipRectF.left)
+                {
+                    float x = mClipRectF.left - mViewRectF.left;
+                    mViewRectF.left += x;
+                    mViewRectF.right += x;
+                }
+                else if(mViewRectF.right < mClipRectF.right)
+                {
+                    float x = mClipRectF.right - mViewRectF.right;
+                    mViewRectF.left += x;
+                    mViewRectF.right += x;
+                }
+                if(mViewRectF.top > mClipRectF.top)
+                {
+                    float y = mClipRectF.top - mViewRectF.top;
+                    mViewRectF.top += y;
+                    mViewRectF.bottom += y;
+                }
+                else if(mViewRectF.bottom < mClipRectF.bottom)
+                {
+                    float y = mClipRectF.bottom - mViewRectF.bottom;
+                    mViewRectF.top += y;
+                    mViewRectF.bottom += y;
+                }
+
+                invalidate();
+
+                break;
+        }
+
+
         invalidate();
     }
 
 
-    private void onMove(MotionEvent e)
+    private void onSingleFingerMove(MotionEvent e)
     {
         switch (mViewState)
         {
             case normal:
-                onMoveNormal(e);
+                onSingleMoveNormal(e);
                 break;
 
             case focus:
-                onMoveFocus(e);
+                onSingleMoveFocus(e);
                 break;
 
             case cropped:
@@ -322,7 +420,7 @@ public class CropImageView extends View
         }
     }
 
-    private void onMoveNormal(MotionEvent e)
+    private void onSingleMoveNormal(MotionEvent e)
     {
         float tempDistanceX = (e.getX() - mSPoint.x);
         //        float tempDistanceY = (e.getY() - mSPoint.y);
@@ -346,18 +444,35 @@ public class CropImageView extends View
     }
 
 
-    private void onMoveFocus(MotionEvent e)
+    private void onSingleMoveFocus(MotionEvent e)
     {
-        //        float oX = mLastMovePointF.x;
-        //        float oY = mLastMovePointF.y;
+        mFocusDiffX = -(mLastMovePointF.x - e.getX());
+        mFocusDiffY = -(mLastMovePointF.y - e.getY());
 
-        mFocusDiffX += -(mLastMovePointF.x - e.getX());
-        mFocusDiffY += -(mLastMovePointF.y - e.getY());
+        recordFirstFingerLastMovePoint(e);
+
+        mViewRectF.set(mFocusDiffX + mViewRectF.left, mFocusDiffY + mViewRectF.top,
+                mFocusDiffX + mViewRectF.right, mFocusDiffY + mViewRectF.bottom);
+
+        //        mViewRectF.set(mFocusDiffX + mViewRectF.left, mFocusDiffY + mViewRectF.top,
+        //                mFocusDiffX + mViewRectF.right, mFocusDiffY + mViewRectF.bottom);
+
+        invalidate();
+    }
+
+    /**
+     * 紀錄第一根手指(負責移動圖片的手指)最後的位置
+     *
+     * @param e
+     */
+    private void recordFirstFingerLastMovePoint(MotionEvent e)
+    {
+        int id = e.getPointerId(e.getActionIndex());
+        if (id != 0)
+            return;
 
         mLastMovePointF.x = e.getX();
         mLastMovePointF.y = e.getY();
-
-        invalidate();
     }
 
     @Override
@@ -370,7 +485,12 @@ public class CropImageView extends View
                 return true;
 
             case focus:
-                mLastMovePointF.set(e.getX(), e.getY());
+                if (e.getPointerId(e.getActionIndex()) == 0 &&
+                    mViewRectF.contains(e.getX(), e.getY()))
+                {
+                    mCanSingleMove = true;
+                    mLastMovePointF.set(e.getX(), e.getY());
+                }
                 return true;
         }
 
