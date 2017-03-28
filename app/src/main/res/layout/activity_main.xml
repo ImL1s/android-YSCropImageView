@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context="com.ys.cropimageview.MainActivity">
+    tools:context="com.ys.cropimageview.activity.MainActivity">
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -43,7 +43,7 @@
             />
     </RelativeLayout>
 
-    <com.ys.cropimageview.CropImageView
+    <com.ys.cropimageview.view.CropImageView
         android:id="@+id/civ_crop"
         android:layout_width="match_parent"
         android:layout_height="0dp"

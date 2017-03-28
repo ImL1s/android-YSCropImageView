@@ -1,11 +1,10 @@
-package com.ys.cropimageview;
+package com.ys.cropimageview.view;
 
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
@@ -17,6 +16,8 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
+
+import com.ys.cropimageview.R;
 
 /**
  * Created by ImL1s on 2017/3/21.
@@ -46,8 +47,9 @@ public class CropImageView extends View
     private Paint                 mWhitePaint   = null;
     private OnStateChangeListener mOnSCListener = null;
     private ViewState             mViewState    = ViewState.normal;
-    private float   mFocusDiffX;
-    private float   mFocusDiffY;
+    private float mFocusDiffX;
+    private float mFocusDiffY;
+    private float mBaseDistance = 0;
     private Bitmap  mCacheBitmap;
     private float   mScale;
     private boolean mCanSingleMove;
@@ -81,9 +83,10 @@ public class CropImageView extends View
     private void init(Context context)
     {
         mContext = context;
-        mBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.emt);
-        mBitmapRect = new Rect(0, 0, mBitmap.getWidth(), mBitmap.getHeight());
-        mViewRectF = new RectF(0, 0, getWidth(), getHeight());
+        mBitmap = null;
+//        mBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.emt);
+//        mBitmapRect = new Rect(0, 0, mBitmap.getWidth(), mBitmap.getHeight());
+//        mViewRectF = new RectF(0, 0, getWidth(), getHeight());
 
         mWhitePaint = new Paint();
         mWhitePaint.setColor(Color.WHITE);
@@ -91,7 +94,14 @@ public class CropImageView extends View
         mClipPath = new Path();
     }
 
-    private float mBaseDistance = 0;
+    public void setCroppedImage(int drawableId)
+    {
+        mBitmap = BitmapFactory.decodeResource(getResources(), drawableId);
+        mBitmapRect = new Rect(0, 0, mBitmap.getWidth(), mBitmap.getHeight());
+        mViewRectF = new RectF(0, 0, getWidth(), getHeight());
+
+        invalidate();
+    }
 
     @Override
     public boolean onTouchEvent(MotionEvent event)
@@ -153,7 +163,7 @@ public class CropImageView extends View
     }
 
     /**
-     * 雙指
+     * 雙指滑動做縮放
      *
      * @param event
      */
@@ -193,6 +203,9 @@ public class CropImageView extends View
     @Override
     protected void onDraw(Canvas canvas)
     {
+        if (mBitmap == null)
+            return;
+
         switch (mViewState)
         {
             case normal:
@@ -373,19 +386,19 @@ public class CropImageView extends View
                     mViewRectF.left += x;
                     mViewRectF.right += x;
                 }
-                else if(mViewRectF.right < mClipRectF.right)
+                else if (mViewRectF.right < mClipRectF.right)
                 {
                     float x = mClipRectF.right - mViewRectF.right;
                     mViewRectF.left += x;
                     mViewRectF.right += x;
                 }
-                if(mViewRectF.top > mClipRectF.top)
+                if (mViewRectF.top > mClipRectF.top)
                 {
                     float y = mClipRectF.top - mViewRectF.top;
                     mViewRectF.top += y;
                     mViewRectF.bottom += y;
                 }
-                else if(mViewRectF.bottom < mClipRectF.bottom)
+                else if (mViewRectF.bottom < mClipRectF.bottom)
                 {
                     float y = mClipRectF.bottom - mViewRectF.bottom;
                     mViewRectF.top += y;

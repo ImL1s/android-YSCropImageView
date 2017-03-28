@@ -1,10 +1,12 @@
-package com.ys.cropimageview;
+package com.ys.cropimageview.activity;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.ImageView;
+
+import com.ys.cropimageview.R;
 
 public class ShowActivity extends AppCompatActivity
 {

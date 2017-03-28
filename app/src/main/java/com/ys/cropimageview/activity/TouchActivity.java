@@ -1,9 +1,11 @@
-package com.ys.cropimageview;
+package com.ys.cropimageview.activity;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
+
+import com.ys.cropimageview.R;
 
 public class TouchActivity extends AppCompatActivity
 {

@@ -1,18 +1,17 @@
-package com.ys.cropimageview;
+package com.ys.cropimageview.activity;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Matrix;
 import android.graphics.RectF;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageView;
 
-import static com.ys.cropimageview.BitmapUtil.zoomBitmap;
+import com.ys.cropimageview.R;
+import com.ys.cropimageview.view.CropImageView;
+
+import static com.ys.cropimageview.utils.BitmapUtil.zoomBitmap;
 
 public class MainActivity extends AppCompatActivity implements CropImageView.OnStateChangeListener
 {
@@ -49,6 +48,9 @@ public class MainActivity extends AppCompatActivity implements CropImageView.OnS
             }
         });
         btnOK.setEnabled(false);
+
+        mCropImageView.setCroppedImage(R.drawable.emt);
+//        mCropImageView.setCroppedImage(R.drawable.test_img);
     }
 
 
