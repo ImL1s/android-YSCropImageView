@@ -9,7 +9,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".activity.MainActivity">
+        <activity android:name=".activity.ScaleImageActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
@@ -17,7 +17,9 @@
             </intent-filter>
         </activity>
         <activity android:name=".activity.ShowActivity"/>
-        <!--<activity android:name=".TouchActivity"/>-->
-    </application>
+        <!-- <activity android:name=".TouchActivity"/> -->
+        <!--<activity android:name=".activity.ScaleImageActivity"/>-->
+        <!--<activity android:name=".activity.ScaleAnimationActivity"/>-->
+</application>
 
-</manifest>
+    </manifest>
